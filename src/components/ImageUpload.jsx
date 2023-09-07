@@ -8,39 +8,53 @@ import {
   getMetadata,
 } from "firebase/storage";
 import { v4 } from "uuid";
-import { storage, auth } from "../firebase"; // Make sure to import your Firebase storage reference and authentication object
+import { storage, auth } from "../firebase";
 
 function ImageUpload() {
   const [img, setImg] = useState(null);
   const [imgUrl, setImgUrl] = useState([]);
 
+  const handlechange = (e) => setImg(e.target.files[0]);
   const handleClick = () => {
+    console.log("clicked")
     if (img !== null) {
+      // Check if the selected file is an image (you can extend this check to include more image types)
+      const allowedImageTypes = ["image/jpeg", "image/png", "image/gif"];
+      if (!allowedImageTypes.includes(img.type)) {
+        alert("Please select a valid image file (JPEG, PNG, or GIF).");
+        return;
+      }
+
       const imageId = v4(); // Generate a unique ID for the image
       const imgRef = ref(storage, `files/${imageId}`);
 
       // Upload the selected image to Firebase Storage
-      uploadBytes(imgRef, img).then((snapshot) => {
-        console.log("Image uploaded:", snapshot);
+      uploadBytes(imgRef, img)
+        .then((snapshot) => {
+          console.log("Image uploaded:", snapshot);
 
-        // Update the image's metadata to include the user's UID
-        const user = auth.currentUser;
-        if (user) {
-          const metadata = {
-            customMetadata: {
-              uploadedBy: user.uid,
-            },
-          };
-          updateMetadata(imgRef, metadata).then(() => {
-            console.log("Image metadata updated with user UID:", user.uid);
+          // Update the image's metadata to include the user's UID
+          const user = auth.currentUser;
+          if (user) {
+            const metadata = {
+              customMetadata: {
+                uploadedBy: user.uid,
+              },
+            };
+            updateMetadata(imgRef, metadata).then(() => {
+              console.log("Image metadata updated with user UID:", user.uid);
 
-            // Get the download URL for the uploaded image
-            getDownloadURL(imgRef).then((url) => {
-              setImgUrl((data) => [...data, url]);
+              // Get the download URL for the uploaded image
+              getDownloadURL(imgRef).then((url) => {
+                setImgUrl((data) => [...data, url]);
+                setImg(null); // Clear the input field by setting img to null
+              });
             });
-          });
-        }
-      });
+          }
+        })
+        .catch((error) => {
+          console.error("Error uploading image:", error);
+        });
     }
   };
 
@@ -84,8 +98,9 @@ function ImageUpload() {
           <input
             type="file"
             id="image"
-            onChange={(e) => setImg(e.target.files[0])} // Assuming setImg is correctly passed as a prop
+            onChange={handlechange}
             className="mt-1 p-2 w-full border rounded-md"
+            accept="image/jpeg, image/png, image/gif" 
           />
         </div>
         <div className="mb-6">
