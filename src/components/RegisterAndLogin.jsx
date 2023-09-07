@@ -19,7 +19,7 @@ function RegisterAndLogin() {
       createUserWithEmailAndPassword(auth, email, password)
         .then((data) => {
           console.log(data, "authData");
-          history("/home");
+          history("/");
         })
         .catch((err) => {
           alert(err.code);
@@ -29,7 +29,7 @@ function RegisterAndLogin() {
       signInWithEmailAndPassword(auth, email, password)
         .then((data) => {
           console.log(data, "authData");
-          history("/home");
+          history("/");
         })
         .catch((err) => {
           alert(err.code);
@@ -37,36 +37,72 @@ function RegisterAndLogin() {
     }
   };
 
-  const handleReset = ()=>{
+  const handleReset = () => {
     history("/reset");
-  }
+  };
   return (
-    <div className="App">
-      {/* Registration and login Screen */}
-      <div className="row">
-        <div
-          className={login == false ? "activeColor" : "pointer"}
-          onClick={() => setLogin(false)}
-        >
-          SignUp
+    <div className="bg-gray-100 min-h-screen flex items-center justify-center">
+      <div className="bg-white p-8 rounded-lg shadow-md w-96">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold mb-4">
+            {login ? "Sign In" : "Sign Up"}
+          </h1>
         </div>
-        <div
-          className={login == true ? "activeColor" : "pointer"}
-          onClick={() => setLogin(true)}
-        >
-          SignIn
-        </div>
+        <form onSubmit={(e) => handleSubmit(e, login ? "signin" : "signup")}>
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Enter your email"
+              className="mt-1 p-2 w-full border rounded-md"
+            />
+          </div>
+          <div className="mb-6">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Enter your password"
+              className="mt-1 p-2 w-full border rounded-md"
+            />
+          </div>
+          <p onClick={handleReset} className="text-blue-500 cursor-pointer">
+            Forgot Password?
+          </p>
+          <div className="mt-6">
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none"
+            >
+              {login ? "Sign In" : "Sign Up"}
+            </button>
+          </div>
+          <div className="mt-4">
+            <p className="text-center text-sm text-gray-600">
+              {login ? "Don't have an account? " : "Already have an account? "}
+              <span
+                className="text-blue-500 cursor-pointer"
+                onClick={() => setLogin(!login)}
+              >
+                {login ? "Sign Up" : "Sign In"}
+              </span>
+            </p>
+          </div>
+        </form>
       </div>
-      <h1>{login ? "SignIn" : "SignUp"}</h1>
-      <form onSubmit={(e) => handleSubmit(e, login ? "signin" : "signup")}>
-        <input name="email" placeholder="Email" />
-        <br />
-        <input name="password" type="text" placeholder="Password" />
-        <br />
-        <p onClick={handleReset}>Forgot Password?</p>
-        <br />
-        <button>{login ? "SignIn" : "SignUp"}</button>
-      </form>
     </div>
   );
 }
