@@ -11,29 +11,32 @@ import { v4 } from "uuid";
 import { storage, auth } from "../firebase";
 
 function ImageUpload() {
-  const [img, setImg] = useState(null);
-  const [imgUrl, setImgUrl] = useState([]);
+  const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState([]);
 
-  const handlechange = (e) => setImg(e.target.files[0]);
-  const handleClick = () => {
-    console.log("clicked")
-    if (img !== null) {
-      // Check if the selected file is an image (you can extend this check to include more image types)
-      const allowedImageTypes = ["image/jpeg", "image/png", "image/gif"];
-      if (!allowedImageTypes.includes(img.type)) {
-        alert("Please select a valid image file (JPEG, PNG, or GIF).");
+  const handleChange = (e) => setFile(e.target.files[0]);
+
+  const handleUpload = () => {
+    console.log("Clicked");
+    if (file !== null) {
+      const allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "application/pdf",
+      ];
+      if (!allowedFileTypes.includes(file.type)) {
+        alert("Please select a valid file (JPEG, PNG, GIF, or PDF).");
         return;
       }
 
-      const imageId = v4(); // Generate a unique ID for the image
-      const imgRef = ref(storage, `files/${imageId}`);
+      const fileId = v4(); 
+      const fileRef = ref(storage, `files/${fileId}`);
 
-      // Upload the selected image to Firebase Storage
-      uploadBytes(imgRef, img)
+      uploadBytes(fileRef, file)
         .then((snapshot) => {
-          console.log("Image uploaded:", snapshot);
+          console.log("File uploaded:", snapshot);
 
-          // Update the image's metadata to include the user's UID
           const user = auth.currentUser;
           if (user) {
             const metadata = {
@@ -41,44 +44,41 @@ function ImageUpload() {
                 uploadedBy: user.uid,
               },
             };
-            updateMetadata(imgRef, metadata).then(() => {
-              console.log("Image metadata updated with user UID:", user.uid);
+            updateMetadata(fileRef, metadata).then(() => {
+              console.log("File metadata updated with user UID:", user.uid);
 
-              // Get the download URL for the uploaded image
-              getDownloadURL(imgRef).then((url) => {
-                setImgUrl((data) => [...data, url]);
-                setImg(null); // Clear the input field by setting img to null
+              getDownloadURL(fileRef).then((url) => {
+                setFileUrl((data) => [...data, { url, type: file.type }]);
+                setFile(null); 
               });
             });
           }
         })
         .catch((error) => {
-          console.error("Error uploading image:", error);
+          console.error("Error uploading file:", error);
         });
     }
   };
 
   useEffect(() => {
-    // List all images in the "files" folder in Firebase Storage
     listAll(ref(storage, "files"))
-      .then((imgs) => {
+      .then((files) => {
         const urls = [];
         const user = auth.currentUser;
 
-        imgs.items.forEach((item) => {
-          // Get image metadata to check if it was uploaded by the current user
+        files.items.forEach((item) => {
           getMetadata(item).then((metadata) => {
             if (user && metadata.customMetadata.uploadedBy === user.uid) {
               getDownloadURL(item).then((url) => {
-                urls.push(url);
-                setImgUrl(urls);
+                urls.push({ url, type: metadata.contentType });
+                setFileUrl(urls);
               });
             }
           });
         });
       })
       .catch((error) => {
-        console.error("Error listing images:", error);
+        console.error("Error listing files:", error);
       });
   }, []);
 
@@ -86,39 +86,47 @@ function ImageUpload() {
     <div className="bg-gray-100 min-h-screen flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-semibold">Image Upload</h1>
+          <h1 className="text-3xl font-semibold">File Upload</h1>
         </div>
         <div className="mb-6">
           <label
-            htmlFor="image"
+            htmlFor="file"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            Select an Image
+            Select a File (Image or PDF)
           </label>
           <input
             type="file"
-            id="image"
-            onChange={handlechange}
+            id="file"
+            onChange={handleChange}
             className="mt-1 p-2 w-full border rounded-md"
-            accept="image/jpeg, image/png, image/gif" 
+            accept="image/jpeg, image/png, image/gif, application/pdf"
           />
         </div>
         <div className="mb-6">
           <button
-            onClick={handleClick}
+            onClick={handleUpload}
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none"
           >
             Upload
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {imgUrl.map((url, index) => (
+          {fileUrl.map((file, index) => (
             <div key={index}>
-              <img
-                src={url}
-                alt={`Image ${index}`}
-                className="rounded-lg max-h-96 mx-auto"
-              />
+              {file.type.startsWith("image/") ? (
+                <img
+                  src={file.url}
+                  alt={`Image ${index}`}
+                  className="rounded-lg max-h-96 mx-auto"
+                />
+              ) : (
+                <embed
+                  src={file.url}
+                  type="application/pdf"
+                  className="w-full h-64"
+                />
+              )}
             </div>
           ))}
         </div>
